@@ -1,0 +1,52 @@
+{
+  "name": "react-router-middleware-plus",
+  "version": "1.0.0",
+  "description": "基于react-router-dom v6版本的路由权限配置化解决方案，引入中间件middleware的概念，零成本式解决路由权限控制难题。",
+  "keywords": [
+    "react",
+    "router",
+    "auth",
+    "middleware",
+    "authentication",
+    "react router auth"
+  ],
+  "main": "./dist/index.umd.js",
+  "module": "./dist/index.es.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && tsc -p tsconfig.build.json",
+    "preview": "vite preview"
+  },
+  "files": ["dist"],
+  "exports": {
+    ".": {
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.umd.js"
+    }
+  },
+  "author": {
+    "name": "huxiaoshuai",
+    "email": "justbecoder@aliyun.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/justbecoder/react-router-middleware-plus.git"
+  },
+  
+  "dependencies": {
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^1.3.0",
+    "vite": "^2.9.9"
+  },
+  "peerDependencies": {
+    "react-router-dom": "^6.3.0",
+    "typescript": "^4.6.3",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "@types/react-router-dom": "^5.3.3"
+  }
+}
