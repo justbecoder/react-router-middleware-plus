@@ -14,80 +14,120 @@ npm install react-router-middleware-plus
 ```
 
 ## Usage
-
-```tsx
-import React from 'react';
-import { BrowserRouter, useNavigate } from 'react-router-dom';
-import { ReactRouterMiddleware, useMiddlewareRoutes } from 'react-router-middleware-plus';
-
-import App from './App'
-import Home from './home'
-import Login from './login'
-import Admin from './admin'
-
-
-// router config
-export default () => {
-  const navigate = useNavigate();
-
-
+1. **配置路由**
+  ```tsx
   /**
-   * @description 鉴权-登录
-   * 
+   * @file router.tsx 路由配置组件
   */
-  const checkLogin = () => {
-    const isLogin = !!localStorage.getItem('username');
-    if (!isLogin) {
-      navigate('/login');
-      // 不要忘记这里的return false，拦截路由渲染
-      return false;
+  import React from 'react';
+  import { BrowserRouter, useNavigate } from 'react-router-dom';
+  import { ReactRouterMiddleware, useMiddlewareRoutes } from 'react-router-middleware-plus';
+
+  import App from './App';
+  import Home from './home';
+  import Login from './login';
+  import Admin from './admin';
+
+
+  // router config
+  export default () => {
+    const navigate = useNavigate();
+
+
+    /**
+     * @description 鉴权-登录
+     * 
+    */
+    const checkLogin = () => {
+      const isLogin = !!localStorage.getItem('username');
+      if (!isLogin) {
+        navigate('/login');
+        // 不要忘记这里的return false，拦截路由渲染
+        return false;
+      }
+
+      // 表示通过了鉴权
+      return true;
     }
 
-    // 表示通过了鉴权
-    return true;
+    /**
+     * @method checkRole
+     * @description 鉴权-用户角色
+    */
+    const checkRole = () => {
+      // 根据自己的页面，判断处理，async/await异步拉取用户数据即可。
+      const isAdmin = localStorage.getItem('role') === 'admin';
+
+      if (!isAdmin) {
+        navigate('/', {
+          replace: true
+        })
+        // 未通过鉴权，返回false
+        return false;
+      }
+
+      // 通过鉴权，返回true
+      return true
+    }
+
+    // 定义路由配置，与react-router-dom是一致的，只是新增了middleware参数，可选
+    // middleware中的鉴权逻辑callback，是从左向右依次调用的，遇到第一个返回false的callback会拦截路由组件的渲染，走callback中用户自定义逻辑
+    const routes = [
+      {
+        path: '/',
+        key: 'index',
+        element: <App></App>,
+        children: [
+          {
+            index: true,
+            key: 'home',
+            element: <Home></Home>
+          },
+          {
+            path: 'admin',
+            key: 'admin',
+            // middleware中callback从左到右依次执行
+            middleware: [checkLogin, checkRole],
+            element: <Admin></Admin>
+          }
+        ]
+      },
+      {
+        path: '/login',
+        key: 'login',
+        element: <Login></Login>
+      },
+    ]
+
+    // 生成路由配置由两种方式：Component  或者是使用Hook useMiddlewareRoutes
+        
+    // 1. Component 渲染
+    // return <ReactRouterMiddleware routes={routes}></ReactRouterMiddleware>;
+    
+    // 2. Hook渲染
+    return useMiddlewareRoutes(routes);
   }
+  ```
+2. **渲染路由**
 
-  // 定义路由配置，与react-router-dom是一致的，只是新增了middleware参数，可选
-  // middleware中的鉴权逻辑callback，是从左向右依次调用的，遇到第一个返回false的callback会拦截路由组件的渲染，走callback中用户自定义逻辑
-  const routes = [
-    {
-      path: '/',
-      key: 'index',
-      element: <App></App>,
-      children: [
-        {
-          index: true,
-          key: 'home',
-          element: <Home></Home>
-        },
-        {
-          path: 'admin',
-          key: 'admin',
-          middleware: [checkLogin],
-          element: <Admin></Admin>
-        }
-      ]
-    },
-    {
-      path: '/login',
-      key: 'login',
-      element: <Login></Login>
-    },
-  ]
+  ```tsx
+    /**
+     * @file index.tsx 入口文件
+    */
+    import React from 'react';
+    import ReactDOM from 'react-dom/client';
+    import { BrowserRouter } from 'react-router-dom';
+    import Router from './router';
 
-  // 生成路由配置由两种方式：Component  或者是使用Hook useMiddlewareRoutes
-  const RoutesElement = useMiddlewareRoutes(routes);
 
-  return <BrowserRouter>
-    {/* 1. Component 渲染 */} 
-    {/* <ReactRouterMiddleware routes={routes}></ReactRouterMiddleware> */}
+    ReactDOM.createRoot(document.getElementById('root')!).render(
+      <BrowserRouter>
+        <Router />
+      </BrowserRouter>
+    );
+  ```
 
-    {/* 2. Hook渲染 */}
-    <RoutesElement></RoutesElement>
-  </BrowserRouter>
-}
-```
-> 通过配置middleware，在callback中自定义处理逻辑，灵活可靠！就是这么简单，路由权限处理问题解决了
+对，是的，就是这么简单！就通过配置middleware，灵活搭配组合callback，在callback中自定义处理逻辑，路由权限处理问题解决了。
 
 ## Props
 react-router-middleware-plus在使用时和react-router-dom中的`useRoutes`是一致的。
