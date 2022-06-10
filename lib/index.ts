@@ -3,6 +3,7 @@
  * @author: huxiaoshuai
  * @Date: 2022-06-08 00:14:50
  * @LastEditors: huxiaoshuai
- * @LastEditTime: 2022-06-08 15:45:25
+ * @LastEditTime: 2022-06-10 23:19:08
 */
-export { default as ReactRouterMiddleware, useMiddlewareRoutes } from './ReactRouterMiddleware'
+export { default as ReactRouterMiddleware } from './ReactRouterMiddleware';
+export * from './ReactRouterMiddleware'

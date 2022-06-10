@@ -3,17 +3,17 @@
  * @author: huxiaoshuai
  * @Date: 2022-06-08 00:32:14
  * @LastEditors: huxiaoshuai
- * @LastEditTime: 2022-06-08 15:49:37
+ * @LastEditTime: 2022-06-10 23:26:39
 */
-import React, { useState } from 'react'
-import { useRoutes, RouteObject } from 'react-router-dom'
+import React, { useEffect, useState, useMemo, } from 'react'
+import { useRoutes, RouteObject, useNavigate } from 'react-router-dom'
 
 /**
  * @description 中间件的回调函数callback
  * 
 */
 export interface MiddlewareFunction {
-  (): boolean
+  (element?: Partial<React.ReactElement>): Partial<React.ReactElement>
 }
 
 export interface RoutesMiddlewareObject extends RouteObject  {
@@ -27,6 +27,12 @@ export interface RoutesMiddlewareObject extends RouteObject  {
    * 
   */
   children?: RoutesMiddlewareObject[];
+
+  /**
+   * @description route key
+   * 
+  */
+  key?: string;
 }
 
 interface IProps {
@@ -34,19 +40,24 @@ interface IProps {
   locationArg?: Partial<Location> | string
 }
 
+interface IMiddlewareProps {
+  middleware?: MiddlewareFunction[];
+  children?: React.ReactElement | null
+}
+
+
 /**
  * @description 中间件组件，处理中间件权限逻辑
  * 
 */
-function  MiddlewareComponent (props: any) {
-  const [show, setShow] = useState(false);
+function  MiddlewareComponent (props: IMiddlewareProps) {
   const { middleware = [], children = null } = props;
 
-  setTimeout(() => {
-    setShow(middleware.every((callback: MiddlewareFunction) => callback()));
-  })    
-
-  return show ? children : null;
+  return middleware.length ? (middleware.reduceRight((prev: any, Current: any) => {
+    return <Current>
+      {prev}
+    </Current>
+  }, children)) : children
 };
 
 /**
@@ -60,7 +71,7 @@ function middlewarePlugin (routesConfig: RoutesMiddlewareObject[]) {
       ...otherRouteProps
     }
     newRouteItem.element = (
-      <MiddlewareComponent middleware={middleware}>{element}</MiddlewareComponent>
+      <MiddlewareComponent middleware={middleware}>{element as React.ReactElement}</MiddlewareComponent>
     );
     if (children && children.length) {
       newRouteItem.children = middlewarePlugin(children);
