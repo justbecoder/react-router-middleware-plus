@@ -93,7 +93,7 @@ npm install react-router-middleware-plus
     }, [isAdmin])
     
     // 通过鉴权
-    return children
+    return isAdmin ? children : null
   }
 
   // router config
