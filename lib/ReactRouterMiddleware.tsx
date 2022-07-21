@@ -1,99 +1,89 @@
-/**
- * @file: 路由中间件
- * @author: huxiaoshuai
- * @Date: 2022-06-08 00:32:14
- * @LastEditors: huxiaoshuai
- * @LastEditTime: 2022-06-10 23:26:39
-*/
-import React, { useEffect, useState, useMemo, } from 'react'
-import { useRoutes, RouteObject, useNavigate } from 'react-router-dom'
+import * as React from 'react'
+import {Outlet, RouteObject, useRoutes} from 'react-router-dom'
 
-/**
- * @description 中间件的回调函数callback
- * 
-*/
-export interface MiddlewareFunction {
-  (element?: Partial<React.ReactElement>): Partial<React.ReactElement>
+type DynamicElementType<T> = () => Promise<{ default: React.ComponentType<T> }>
+
+type ElementType<T> = React.ReactNode | DynamicElementType<T>
+
+type MiddlewareType<T = React.PropsWithChildren> = React.FC<T>
+
+export function isDynamicElement<T = unknown>(node: unknown): node is DynamicElementType<T> {
+  return typeof node === 'function' && node?.toString().startsWith('() => import')
 }
 
-export interface RoutesMiddlewareObject extends RouteObject  {
-  /**
-   * @description 权限处理的middleware callback[]
-   * 
-  */
-  middleware?: MiddlewareFunction[];
-  /**
-   * @description 子路由
-   * 
-  */
-  children?: RoutesMiddlewareObject[];
+export type MergeRouteObject<M, N> = Omit<M, Extract<keyof M, keyof N>> & N
 
-  /**
-   * @description route key
-   * 
-  */
-  key?: string;
-}
-
-interface IProps {
-  routes: RoutesMiddlewareObject[];
-  locationArg?: Partial<Location> | string
-}
-
-interface IMiddlewareProps {
-  middleware?: MiddlewareFunction[];
-  children?: React.ReactElement | null
-}
-
-
-/**
- * @description 中间件组件，处理中间件权限逻辑
- * 
-*/
-function  MiddlewareComponent (props: IMiddlewareProps) {
-  const { middleware = [], children = null } = props;
-
-  return middleware.length ? (middleware.reduceRight((prev: any, Current: any) => {
-    return <Current>
-      {prev}
-    </Current>
-  }, children)) : children
-};
-
-/**
- * @method middlewarePlugin
- * @description 处理routes config
-*/
-function middlewarePlugin (routesConfig: RoutesMiddlewareObject[]) {
-  return routesConfig.map((routeItem: RoutesMiddlewareObject) => {
-    const { element, children, middleware,  ...otherRouteProps } = routeItem
-    const newRouteItem: RoutesMiddlewareObject = {
-      ...otherRouteProps
+export type RouteTypeWithDynamic<T = unknown> = MergeRouteObject<
+    RouteObject,
+    {
+      element?: ElementType<T>
+      children?: RouteTypeWithDynamic<T>[]
     }
-    newRouteItem.element = (
-      <MiddlewareComponent middleware={middleware}>{element as React.ReactElement}</MiddlewareComponent>
-    );
-    if (children && children.length) {
-      newRouteItem.children = middlewarePlugin(children);
+    >
+
+export type RouteTypeWithMiddleware = MergeRouteObject<
+    RouteTypeWithDynamic,
+    {
+      middleware?: MiddlewareType[]
+      children?: RouteTypeWithMiddleware[]
     }
-    return newRouteItem;
-  });
-};
+    >
 
+const buildMiddlewares = (
+    element: React.ReactNode,
+    middleware: MiddlewareType[],
+): React.ReactNode => {
+  middleware = [...middleware].reverse()
+  let component: React.ReactNode = element
+  middleware.forEach(Middleware => {
+    component = <Middleware>{component}</Middleware>
+  })
 
-/**
- * @method useMiddlewareRoutes
- * @description 渲染middleware routes的hook
-*/
-export function useMiddlewareRoutes (routes:RoutesMiddlewareObject[],  locationArg?: Partial<Location> | string) {
-  const routeElement = useRoutes(middlewarePlugin(routes));
-  return routeElement;
+  return component
 }
 
-export default function renderRoutes (props: IProps) {
-  const {routes, locationArg} = props;
-  const routeElement = useMiddlewareRoutes(routes, locationArg);
-  return routeElement;
+const buildRoutes = (routes: RouteTypeWithMiddleware[], loading?: React.ReactNode): RouteObject[] => {
+  const items: RouteObject[] = []
+
+  routes.forEach(route => {
+    const { element, children, middleware, ...rest } = route
+    const item: RouteObject = {
+      ...rest,
+    }
+
+    // check dynamic element
+    if (isDynamicElement(element)) {
+      const LazyComponent = React.lazy(element)
+      item.element = (
+          <React.Suspense fallback={loading || null}>
+            <LazyComponent />
+          </React.Suspense>
+      )
+    } else {
+      item.element = element
+    }
+
+    // exists middleware process
+    if (middleware?.length) {
+      const element = item.element || <Outlet />
+      item.element = buildMiddlewares(element, middleware)
+    }
+
+    // child routes process
+    if (children?.length) {
+      item.children = buildRoutes(children)
+    }
+    items.push(item)
+  })
+
+  return items
 }
 
+export const useMiddlewareRoutes = (
+    routes: RouteTypeWithMiddleware[],
+    loading?: React.ReactNode,
+): React.ReactElement | null => {
+  return useRoutes(buildRoutes(routes, loading))
+}
 
+export default useMiddlewareRoutes
