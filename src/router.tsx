@@ -5,9 +5,9 @@
  * @LastEditors: huxiaoshuai
  * @LastEditTime: 2022-06-10 23:33:14
 */
-import React, { useEffect, useState } from 'react';
-import { useNavigate,BrowserRouter, useParams, useSearchParams } from 'react-router-dom'
-import { ReactRouterMiddleware, useMiddlewareRoutes, RoutesMiddlewareObject } from '../lib/index'
+import React, {useEffect, useState} from 'react';
+import {useNavigate, useParams} from 'react-router-dom'
+import {RouteTypeWithMiddleware, useMiddlewareRoutes} from '../lib'
 import App from './App'
 import Home from './home'
 import Login from './login'
@@ -78,43 +78,37 @@ export default function Router () {
         })
       }
     }, [isAdmin])
-    
+
     // 通过鉴权
     return children
   }
 
   /**
    * @description 路由配置
-   * 
+   *
   */
-  const routes: RoutesMiddlewareObject[] = [
+  const routes: RouteTypeWithMiddleware[] = [
     {
       path: '/',
-      key: 'index',
-      element: <App></App>,
+      element: () => import("./App"),
       children: [
         {
           index: true,
-          key: 'home',
-          element: <Home></Home>
+          element: () => import("./home")
         },
         {
           path: 'admin',
-          key: 'admin',
           middleware: [CheckLogin, CheckRole],
-          element: <Admin></Admin>
+          element: () => import("./admin")
         }
       ]
     },
     {
       path: '/login',
-      key: 'login',
-      element: <Login></Login>
+      element: () => import("./login")
     },
   ]
 
   // return <ReactRouterMiddleware routes={routes}></ReactRouterMiddleware>
-  const RoutesElement = useMiddlewareRoutes(routes);
-
-  return RoutesElement
+  return useMiddlewareRoutes(routes)
 }
