@@ -22,7 +22,7 @@ npm install react-router-middleware-plus
 
 1. **配置路由**
 
-  ```tsx
+```tsx
 /**
  * @file: 路由组件配置
  * @author: huxiaoshuai
@@ -31,8 +31,10 @@ npm install react-router-middleware-plus
  * @LastEditTime: 2022-06-10 23:33:14
  */
 import React, {useEffect, useState} from 'react';
-import {useNavigate, useParams} from 'react-router-dom'
-import {DynamicImport, RouteObjectWithMiddleware, useRoutesWithMiddleware} from '../lib'
+import {useNavigate, useParams} from 'react-router-dom';
+import {DynamicImport, RouteObjectWithMiddleware, useRoutesWithMiddleware} from 'react-router-middleware-plus';
+
+import App from './App';
 
 /**
  * @method getUserInfoApi
@@ -82,28 +84,29 @@ const CheckLogin = ({children}: any) => {
   return children
 }
 
+/**
+ * @method checkRole
+ * @description 鉴权-用户角色
+ */
+const CheckRole = ({children}: any) => {
+  const navigate = useNavigate();
+  // 根据自己的页面，判断处理，async/await异步拉取用户数据即可。
+  const isAdmin = localStorage.getItem('role') === 'admin';
+
+  useEffect(() => {
+    if (!isAdmin) {
+      navigate('/', {
+        replace: true
+      })
+    }
+  }, [isAdmin])
+
+  // 通过鉴权
+  return isAdmin ? children : null
+}
+
+
 export default function Router () {
-  /**
-   * @method checkRole
-   * @description 鉴权-用户角色
-   */
-  const CheckRole = ({children}: any) => {
-    const navigate = useNavigate();
-    // 根据自己的页面，判断处理，async/await异步拉取用户数据即可。
-    const isAdmin = localStorage.getItem('role') === 'admin';
-
-    useEffect(() => {
-      if (!isAdmin) {
-        navigate('/', {
-          replace: true
-        })
-      }
-    }, [isAdmin])
-
-    // 通过鉴权
-    return isAdmin ? children : null
-  }
-
   /**
    * @description 路由配置
    *
@@ -111,7 +114,7 @@ export default function Router () {
   const routes: RouteObjectWithMiddleware[] = [
     {
       path: '/',
-      element: <DynamicImport element={() => import("./App")} />,
+      element: <App />,
       children: [
         {
           index: true,
@@ -132,12 +135,13 @@ export default function Router () {
 
   return useRoutesWithMiddleware(routes)
 }
-  ```
+
+```
 
 2. **渲染路由**
 
-  ```tsx
-    /**
+```tsx
+/**
  * @file index.tsx 入口文件
  */
 import React from 'react';
@@ -151,7 +155,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <Router/>
   </BrowserRouter>
 );
-  ```
+
+```
 
 对，是的，就是这么简单！就通过配置middleware，灵活搭配组合鉴权组件，在鉴权组件中自定义处理逻辑，路由权限处理问题解决了。
 
