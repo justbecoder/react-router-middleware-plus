@@ -7,11 +7,7 @@
 */
 import React, {useEffect, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom'
-import {RouteTypeWithMiddleware, useMiddlewareRoutes} from '../lib'
-import App from './App'
-import Home from './home'
-import Login from './login'
-import Admin from './admin'
+import {DynamicImport, RouteObjectWithMiddleware, useRoutesWithMiddleware} from '../lib'
 
 /**
  * @method getUserInfoApi
@@ -87,28 +83,27 @@ export default function Router () {
    * @description 路由配置
    *
   */
-  const routes: RouteTypeWithMiddleware[] = [
+  const routes: RouteObjectWithMiddleware[] = [
     {
       path: '/',
-      element: () => import("./App"),
+      element: <DynamicImport element={() => import("./App")} />,
       children: [
         {
           index: true,
-          element: () => import("./home")
+          element: <DynamicImport element={() => import("./home")} />
         },
         {
           path: 'admin',
           middleware: [CheckLogin, CheckRole],
-          element: () => import("./admin")
+          element: <DynamicImport element={() => import("./admin")} />
         }
       ]
     },
     {
       path: '/login',
-      element: () => import("./login")
+      element: <DynamicImport element={() => import("./login")} />
     },
   ]
 
-  // return <ReactRouterMiddleware routes={routes}></ReactRouterMiddleware>
-  return useMiddlewareRoutes(routes)
+  return useRoutesWithMiddleware(routes)
 }

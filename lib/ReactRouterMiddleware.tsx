@@ -1,37 +1,23 @@
 import * as React from 'react'
-import {Outlet, RouteObject, useRoutes} from 'react-router-dom'
+import { Outlet, RouteObject, useRoutes } from 'react-router-dom'
 
 type DynamicElementType<T> = () => Promise<{ default: React.ComponentType<T> }>
 
-type ElementType<T> = React.ReactNode | DynamicElementType<T>
-
 type MiddlewareType<T = React.PropsWithChildren> = React.FC<T>
-
-export function isDynamicElement<T = unknown>(node: unknown): node is DynamicElementType<T> {
-  return typeof node === 'function' && node?.toString().startsWith('() => import')
-}
 
 export type MergeRouteObject<M, N> = Omit<M, Extract<keyof M, keyof N>> & N
 
-export type RouteTypeWithDynamic<T = unknown> = MergeRouteObject<
-    RouteObject,
-    {
-      element?: ElementType<T>
-      children?: RouteTypeWithDynamic<T>[]
-    }
-    >
-
-export type RouteTypeWithMiddleware = MergeRouteObject<
-    RouteTypeWithDynamic,
-    {
-      middleware?: MiddlewareType[]
-      children?: RouteTypeWithMiddleware[]
-    }
-    >
+export type RouteObjectWithMiddleware = MergeRouteObject<
+  RouteObject,
+  {
+    middleware?: MiddlewareType[]
+    children?: RouteObjectWithMiddleware[]
+  }
+  >
 
 const buildMiddlewares = (
-    element: React.ReactNode,
-    middleware: MiddlewareType[],
+  element: React.ReactNode,
+  middleware: MiddlewareType[],
 ): React.ReactNode => {
   middleware = [...middleware].reverse()
   let component: React.ReactNode = element
@@ -42,34 +28,36 @@ const buildMiddlewares = (
   return component
 }
 
-const buildRoutes = (routes: RouteTypeWithMiddleware[], loading?: React.ReactNode): RouteObject[] => {
+type DynamicImportProps = {
+  element: DynamicElementType<unknown>
+  loading?: React.ReactNode
+}
+
+export const DynamicImport: React.FC<DynamicImportProps> = ({ element, loading }) => {
+  const LazyComponent = React.lazy(element)
+  return (
+    <React.Suspense fallback={loading || null}>
+      <LazyComponent />
+    </React.Suspense>
+  )
+}
+
+const buildRoutes = (routes: RouteObjectWithMiddleware[]): RouteObject[] => {
   const items: RouteObject[] = []
 
   routes.forEach(route => {
-    const { element, children, middleware, ...rest } = route
+    const { children, middleware, ...rest } = route
     const item: RouteObject = {
       ...rest,
     }
 
-    // check dynamic element
-    if (isDynamicElement(element)) {
-      const LazyComponent = React.lazy(element)
-      item.element = (
-          <React.Suspense fallback={loading || null}>
-            <LazyComponent />
-          </React.Suspense>
-      )
-    } else {
-      item.element = element
-    }
-
-    // exists middleware process
+    // 存在中间件
     if (middleware?.length) {
       const element = item.element || <Outlet />
       item.element = buildMiddlewares(element, middleware)
     }
 
-    // child routes process
+    // 子路由处理
     if (children?.length) {
       item.children = buildRoutes(children)
     }
@@ -79,11 +67,8 @@ const buildRoutes = (routes: RouteTypeWithMiddleware[], loading?: React.ReactNod
   return items
 }
 
-export const useMiddlewareRoutes = (
-    routes: RouteTypeWithMiddleware[],
-    loading?: React.ReactNode,
+export const useRoutesWithMiddleware = (
+  routes: RouteObjectWithMiddleware[],
 ): React.ReactElement | null => {
-  return useRoutes(buildRoutes(routes, loading))
+  return useRoutes(buildRoutes(routes))
 }
-
-export default useMiddlewareRoutes

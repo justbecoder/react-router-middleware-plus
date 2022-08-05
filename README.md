@@ -2,11 +2,11 @@
 
 ## Introduce
 
-1、react-router-middleware-plus是基于react-router-dom v6版本的路由权限配置化解决方案，引入中间件`middleware`的概念，零成本式解决路由权限控制难题。
+1、`react-router-middleware-plus` 是基于 `react-router-dom` `v6` 版本的路由权限配置化解决方案，引入中间件 `middleware`  的概念，零成本式解决路由权限控制难题。
 
-2、支持 element 使用 `() => import(xxx)` 的形式引入组件
+2、支持 `element` 使用 `<DynamicImport element={() => import(xxx)} />` 的形式引入组件
 
-3、支持 React.Suspense 的 fallback 属性，用于指定 loading 组件
+3、支持指定 `DynamicImport` 的 `loading` 属性，传入 `React.Suspense` 的 `fallback` 组件
 
 ## Install
 
@@ -23,7 +23,7 @@ npm install react-router-middleware-plus
 1. **配置路由**
 
   ```tsx
-  /**
+/**
  * @file: 路由组件配置
  * @author: huxiaoshuai
  * @Date: 2022-06-08 00:45:03
@@ -32,11 +32,7 @@ npm install react-router-middleware-plus
  */
 import React, {useEffect, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom'
-import {RouteTypeWithMiddleware, useMiddlewareRoutes} from 'react-router-middleware-plus'
-import App from './App'
-import Home from './home'
-import Login from './login'
-import Admin from './admin'
+import {DynamicImport, RouteObjectWithMiddleware, useRoutesWithMiddleware} from '../lib'
 
 /**
  * @method getUserInfoApi
@@ -86,7 +82,7 @@ const CheckLogin = ({children}: any) => {
   return children
 }
 
-export default function Router() {
+export default function Router () {
   /**
    * @method checkRole
    * @description 鉴权-用户角色
@@ -112,30 +108,29 @@ export default function Router() {
    * @description 路由配置
    *
    */
-  const routes: RouteTypeWithMiddleware[] = [
+  const routes: RouteObjectWithMiddleware[] = [
     {
       path: '/',
-      element: () => import("./App"),
+      element: <DynamicImport element={() => import("./App")} />,
       children: [
         {
           index: true,
-          element: () => import("./home")
+          element: <DynamicImport element={() => import("./home")} />
         },
         {
           path: 'admin',
           middleware: [CheckLogin, CheckRole],
-          element: () => import("./admin")
+          element: <DynamicImport element={() => import("./admin")} />
         }
       ]
     },
     {
       path: '/login',
-      element: () => import("./login")
+      element: <DynamicImport element={() => import("./login")} />
     },
   ]
 
-  // return <ReactRouterMiddleware routes={routes}></ReactRouterMiddleware>
-  return useMiddlewareRoutes(routes)
+  return useRoutesWithMiddleware(routes)
 }
   ```
 
@@ -166,8 +161,7 @@ react-router-middleware-plus在使用时和react-router-dom中的`useRoutes`是�
 
 | 属性      | 类型                        | 描述                             | 是否可选 |
 |---------|---------------------------|--------------------------------|------|
-| routes  | RouteTypeWithMiddleware[] | 路由配置，在RoutesObject类型上扩展了`middleware`属性 | 否    |
-| loading | React.ReactNode           | 支持指定一个 Loading 组件，用作懒加载显示      | 可选   |
+| routes  | React.ReactNode | 路由配置，在RoutesObject类型上扩展了`middleware`属性 | 否    |
 
 ## 贡献者
 
