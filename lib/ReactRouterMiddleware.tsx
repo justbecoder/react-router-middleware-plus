@@ -35,18 +35,57 @@ const buildMiddlewares = (
   return component
 }
 
+type DynamicImportState = {
+  loading: boolean
+  Component: React.ComponentType<unknown> | null
+}
+
 type DynamicImportProps = {
   element: DynamicElementType<unknown>
   loading?: React.ReactNode
 }
 
-export const DynamicImport: React.FC<DynamicImportProps> = ({ element, loading }) => {
-  const LazyComponent = React.lazy(element)
-  return (
-    <React.Suspense fallback={loading || null}>
-      <LazyComponent />
-    </React.Suspense>
-  )
+export class DynamicImport extends React.PureComponent<DynamicImportProps, DynamicImportState> {
+  constructor(props: DynamicImportProps | Readonly<DynamicImportProps>) {
+    super(props)
+    this.state = {
+      loading: false,
+      Component: null,
+    }
+  }
+
+  componentDidMount() {
+    const { element } = this.props
+    this.handlerLoadComponent(element)
+  }
+
+  componentDidUpdate(prevProps: Readonly<DynamicImportProps>) {
+    if (prevProps.element.toString() !== this.props.element.toString()) {
+      this.handlerLoadComponent(this.props.element)
+    }
+  }
+
+  handlerLoadComponent(element: DynamicElementType<unknown>) {
+    this.setState({ loading: true })
+    element()
+      .then(module => module.default || module)
+      .then(Component => {
+        this.setState({ Component })
+      })
+      .catch(err => {
+        throw err
+      })
+      .finally(() => {
+        this.setState({ loading: false })
+      })
+  }
+  render() {
+    const { Component, loading } = this.state
+    if (loading) {
+      return this.props.loading
+    }
+    return Component ? <Component /> : null
+  }
 }
 
 const buildRoutes = (routes: RouteObjectWithMiddleware[]): RouteObject[] => {
