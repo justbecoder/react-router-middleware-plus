@@ -1,3 +1,10 @@
+/**
+ * @file: description
+ * @author: huxiaoshuai
+ * @Date: 2022-08-05 16:25:24
+ * @LastEditors: huxiaoshuai
+ * @LastEditTime: 2022-08-12 11:00:09
+*/
 import * as React from 'react'
 import { Outlet, RouteObject, useRoutes } from 'react-router-dom'
 
@@ -69,6 +76,7 @@ const buildRoutes = (routes: RouteObjectWithMiddleware[]): RouteObject[] => {
 
 export const useRoutesWithMiddleware = (
   routes: RouteObjectWithMiddleware[],
+  locationArg?: string | Partial<Location> | undefined
 ): React.ReactElement | null => {
-  return useRoutes(buildRoutes(routes))
+  return useRoutes(buildRoutes(routes), locationArg)
 }
